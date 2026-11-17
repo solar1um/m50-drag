@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>M50 Драг 402</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: full-bleed 3D engine (cutaway) as the hero, drag-strip instruments docked at the bottom, menus as centred sheets.
+   One dark look by choice (night strip); colours are tokens so a light scheme never fights the 3D scene. */
+:root {
+  --bg: #0b0d10; --panel: rgba(16, 18, 22, 0.92); --line: #2a2e35; --fg: #ece9e2; --muted: #8d9099;
+  --amber: #ff8a2a; --needle: #ff4d1f; --red: #e2382b; --ok: #58d07c; --gold: #f2c14e;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+:root[data-theme="light"], :root[data-theme="dark"] { --bg: #0b0d10; --fg: #ece9e2; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #0b0d10; } }
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--display); overflow: hidden; -webkit-user-select: none; user-select: none; }
+[hidden] { display: none !important; }
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.top { position: fixed; z-index: 3; top: calc(10px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; pointer-events: none; }
+.top h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: .03em; line-height: 1; }
+.top p { margin: 3px 0 0; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.top .right { display: flex; gap: 6px; pointer-events: auto; flex-wrap: wrap; justify-content: flex-end; }
+button { font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fg);
+  background: #1b1e24; border: 1px solid var(--line); border-radius: 6px; padding: 8px 13px; cursor: pointer; touch-action: manipulation; }
+button:hover { border-color: #4a505c; }
+button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+button.primary { background: var(--amber); color: #1a1206; border-color: var(--amber); }
+button.small { font-size: 14px; padding: 6px 9px; }
+button.toggle[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
+button:disabled { opacity: .45; cursor: default; }
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: linear-gradient(to top, rgba(6,7,9,.97), rgba(6,7,9,.82) 72%, rgba(6,7,9,0)); display: grid; gap: 8px; grid-template-columns: auto 1fr auto; align-items: end; }
+#tach { width: 170px; height: 170px; }
+.mid { display: grid; gap: 6px; min-width: 0; }
+.nums { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.gear { font-size: 64px; font-weight: 700; line-height: .8; min-width: 38px; text-align: center; }
+.gear.shift { color: var(--amber); text-shadow: 0 0 18px rgba(255,138,42,.7); }
+.gear.cutting { color: var(--red); }
+.kv { display: grid; } .kv b { font-family: var(--mono); font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; }
+.kv span { font-size: 12px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+#strip { width: 100%; height: 46px; display: block; }
+.msg { font-family: var(--mono); font-size: 12px; color: var(--muted); min-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tree { display: flex; gap: 7px; align-items: center; }
+.tree i { width: 16px; height: 16px; border-radius: 50%; background: #23262c; border: 1px solid var(--line); display: block; }
+.tree i.a { background: var(--amber); box-shadow: 0 0 12px var(--amber); } .tree i.g { background: var(--ok); box-shadow: 0 0 14px var(--ok); } .tree i.r { background: var(--red); box-shadow: 0 0 14px var(--red); }
+.pedals { display: flex; gap: 8px; align-items: stretch; }
+.pedals button { width: 116px; height: 92px; font-size: 18px; padding: 6px; border-radius: 12px; background-color: #23262d; }
+#gas { background-image: repeating-linear-gradient(0deg, transparent 0 9px, rgba(255,255,255,.05) 9px 11px); }
+#gas.down, #shift.down { background-color: var(--amber); color: #1a1206; transform: translateY(2px); }
+.pedals small { display: block; font-family: var(--mono); font-size: 10px; font-weight: 400; color: var(--muted); letter-spacing: 0; text-transform: none; margin-top: 4px; }
+#gas.down small, #shift.down small { color: #1a1206; }
+.sheet { position: fixed; z-index: 6; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(5,6,8,.55); overflow: auto; }
+.card { width: min(560px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 12px; backdrop-filter: blur(6px); }
+.card h2 { margin: 0; font-size: 30px; letter-spacing: .03em; line-height: 1; } .card h2 small { font-size: 15px; color: var(--muted); font-weight: 500; margin-left: 8px; }
+.card p { margin: 0; font-size: 16px; line-height: 1.35; color: #c9c6bf; }
+.card .mono { font-family: var(--mono); font-size: 12px; color: var(--muted); line-height: 1.6; }
+.rowb { display: flex; gap: 8px; flex-wrap: wrap; }
+.big { font-family: var(--mono); font-size: 54px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; } .big small { font-size: 18px; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.stat { border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; } .stat b { font-family: var(--mono); font-size: 18px; display: block; font-variant-numeric: tabular-nums; } .stat span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.good { color: var(--ok); } .bad { color: var(--red); } .gold { color: var(--gold); }
+.up { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; border-top: 1px solid var(--line); padding-top: 9px; }
+.up b { font-size: 19px; } .up span { font-size: 14px; color: var(--muted); } .up .lv { grid-column: 1 / -1; display: flex; gap: 4px; }
+.up .lv i { height: 4px; flex: 1; background: #2a2e35; border-radius: 2px; } .up .lv i.on { background: var(--amber); }
+.league { display: flex; gap: 4px; } .league i { flex: 1; height: 6px; border-radius: 3px; background: #2a2e35; } .league i.on { background: var(--gold); } .league i.cur { background: var(--amber); }
+#loading { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; background: var(--bg); text-align: center; font-family: var(--mono); font-size: 13px; color: var(--muted); line-height: 1.8; }
+#loading b { color: var(--amber); font-size: 34px; font-family: var(--display); }
+@media (max-width: 720px) {
+  .dock { grid-template-columns: auto 1fr; } .pedals { grid-column: 1 / -1; } .pedals button { flex: 1; height: 84px; }
+  #tach { width: 118px; height: 118px; } .gear { font-size: 50px; } .kv b { font-size: 19px; } .top h1 { font-size: 19px; } .top p { display: none; }
+}
+@media (max-height: 520px) and (orientation: landscape) { #tach { width: 104px; height: 104px; } .pedals button { height: 70px; } #strip { height: 34px; } }
+@media (prefers-reduced-motion: reduce) { #gas.down, #shift.down { transform: none; } }
+</style>
+
+</head>
+<body>
+<div id="stage"></div>
+<div class="top">
+  <div><h1>M50 ДРАГ · 402 м</h1><p>E34 525i · M50B25 · 192 л.с. · ZF 5-ст. · звук — твоя запись</p></div>
+  <div class="right">
+    <button class="small toggle" id="btnCut" aria-pressed="true">Разрез</button>
+    <button class="small toggle" id="btnSnd" aria-pressed="true">Звук</button>
+    <button class="small" id="btnMenu">Меню</button>
+  </div>
+</div>
+
+<div class="dock" id="dock" hidden>
+  <canvas id="tach" width="340" height="340" aria-label="Тахометр"></canvas>
+  <div class="mid">
+    <div class="tree" id="tree" aria-label="Стартовый светофор"><i></i><i></i><i></i><i></i><span class="msg" id="msg"></span></div>
+    <div class="nums">
+      <div class="gear" id="gear">N</div>
+      <div class="kv"><b id="spd">0</b><span>км/ч</span></div>
+      <div class="kv"><b id="tim">0.00</b><span>время, с</span></div>
+      <div class="kv"><b id="dst">0</b><span>метров</span></div>
+    </div>
+    <canvas id="strip" width="900" height="92" aria-label="Трасса 402 м"></canvas>
+  </div>
+  <div class="pedals">
+    <button id="shift" aria-label="Передача вверх">Передача ▲<small>Shift / →</small></button>
+    <button id="gas" aria-label="Газ, удерживать">Газ<small>Пробел / ↑</small></button>
+  </div>
+</div>
+
+<div class="sheet" id="sheetMenu" hidden><div class="card">
+  <h2>M50 ДРАГ <small>¼ мили на E34 525i</small></h2>
+  <p>Держи газ, на зелёный жми «Передача» — это старт с первой. Переключайся у красной зоны, не упирайся в отсечку (~6500). Заработал кредиты — прокачай машину в гараже.</p>
+  <div class="league" id="leagueBar"></div>
+  <div class="mono" id="menuInfo"></div>
+  <div class="rowb"><button class="primary" id="mRace">Заезд</button><button id="mGarage">Гараж</button><button id="mBench">Стенд</button></div>
+  <div class="mono">Звук мотора собран только из твоей записи «мой м50.mp3»: холостые, разгон, отсечка, сбросы. Стартера, шин и ветра в записи нет — их нет и в игре.</div>
+</div></div>
+
+<div class="sheet" id="sheetGarage" hidden><div class="card">
+  <h2>Гараж <small id="gCr"></small></h2>
+  <div id="gList"></div>
+  <div class="rowb"><button class="primary" id="gRace">Заезд</button><button id="gBack">Назад</button></div>
+</div></div>
+
+<div class="sheet" id="sheetRes" hidden><div class="card">
+  <h2 id="rTitle">Финиш</h2>
+  <div class="big" id="rEt">—</div>
+  <p id="rLine"></p>
+  <div class="grid2" id="rStats"></div>
+  <div class="mono" id="rPay"></div>
+  <div class="rowb"><button class="primary" id="rAgain">Ещё раз</button><button id="rGarage">Гараж</button><button id="rShare">Скопировать результат</button></div>
+</div></div>
+
+<div id="loading"><div><b id="pct">0%</b><br>загружаю мотор (9 МБ)</div></div>
+
+<script id="cyc">
+// CycleEngine: plays the owner's recording re-sampled to the crank-angle domain (S samples per firing period).
+// Every frame is read at exactly the current firing rate (exact pitch). The sound is built from overlapping grains that are two engine
+// cycles long (12 firings), start on the same position inside the 6-firing cycle and cross-fade into each other, so there are no seams:
+// while the engine speed drifts, each new grain simply starts a little further along the tape.
+class CycleEngine {
+  constructor(sr, pcm, meta) {
+    this.sr = sr; this.p = pcm; this.S = meta.S; this.T = meta.rpm; this.idle = meta.idle_rpm; this.segs = meta.segs;
+    this.bank = { idle: [], on: [], lim: [], off: [], spare: [] };
+    meta.segs.forEach((s, i) => { s.i = i; this.bank[s.bank].push(s); });
+    this.v = [0, 1, 2, 3].map(() => ({ on: false, b: 0, k: 0, len: 12, fi: 6, fo: 6, g: 1, seg: null, born: 0 }));
+    this.main = null; this.clock = 0; this.ph = 0; this.rpm = this.idle; this.rp = this.idle; this.thr = 0; this.g = 0; this.seed = 987654321;
+    this.cp = 0; this.onT = false; this.bk = 'off'; this.dR = 0; this.rPrev = this.idle; this.jumps = 0;
+    const is = meta.segs.find(q => q.bank === 'idle'), il = meta.idle_loop || [0, is.n - 1];
+    this.wt = meta.wt || null; this.clean = 0.7; this.wOn = 0; this.gOn = 1;
+    this.i0 = is.start + il[0]; this.i1 = this.i0 + il[1]; this.ic = this.i0; this.io = -1; this.wI = 1; this.setTone(6, -1.5); this.lp = 0; this.ag = 0; this.agg = 1; this.dyn = 0.3;
+  }
+  shelf(f0, dB, high) {          // RBJ cookbook shelving biquad, S = 1
+    const A = Math.pow(10, dB / 40), w = 2 * Math.PI * f0 / this.sr, cs = Math.cos(w), al = Math.sin(w) / 2 * Math.SQRT2, sA = 2 * Math.sqrt(A) * al;
+    let b0, b1, b2, a0, a1, a2;
+    if (!high) { b0 = A * ((A + 1) - (A - 1) * cs + sA); b1 = 2 * A * ((A - 1) - (A + 1) * cs); b2 = A * ((A + 1) - (A - 1) * cs - sA); a0 = (A + 1) + (A - 1) * cs + sA; a1 = -2 * ((A - 1) + (A + 1) * cs); a2 = (A + 1) + (A - 1) * cs - sA; }
+    else { b0 = A * ((A + 1) + (A - 1) * cs + sA); b1 = -2 * A * ((A - 1) + (A + 1) * cs); b2 = A * ((A + 1) + (A - 1) * cs - sA); a0 = (A + 1) - (A - 1) * cs + sA; a1 = 2 * ((A - 1) - (A + 1) * cs); a2 = (A + 1) - (A - 1) * cs - sA; }
+    return { b0: b0 / a0, b1: b1 / a0, b2: b2 / a0, a1: a1 / a0, a2: a2 / a0, x1: 0, x2: 0, y1: 0, y2: 0 };
+  }
+  setTone(bass, treble) { this.eqL = this.shelf(160, bass, false); this.eqH = this.shelf(5000, treble, true); this.post = Math.pow(10, -Math.max(0, bass - 5) / 20); }
+  rnd() { this.seed = (Math.imul(this.seed, 1664525) + 1013904223) >>> 0; return this.seed / 4294967296; }
+  kind(st) { this.onT = st.thr > 0.55 ? true : st.thr < 0.45 ? false : this.onT; return st.lim ? 'lim' : this.onT ? 'on' : 'off'; }
+  // start frame for a new grain: its middle (b + len/2) should sit at the target speed; on-throttle / limiter grains keep the cycle position
+  choose(bank, target, len, want) {
+    const T = this.T, half = len >> 1, cur = this.main && this.main.seg; let best = -1, bs = 1e9, bseg = null;
+    for (const s of this.bank[bank]) {
+      const last = s.start + s.n - len - 1; if (last < s.start) continue;
+      if (bank === 'lim') { const n = Math.floor((last - s.start - want + 6) / 6); if (n < 1) continue; const b = s.start + want + 6 * Math.floor(this.rnd() * n); const sc = this.rnd(); if (sc < bs) { bs = sc; best = b; bseg = s; } continue; }
+      const step = bank === 'on' ? 6 : 1, first = s.start + (bank === 'on' ? want : 0);
+      let lb = -1, ls = 1e9;
+      for (let b = first; b <= last; b += step) { const e = Math.abs(Math.log(T[b + half] / target)); if (e < ls) { ls = e; lb = b; } }
+      if (lb < 0) continue;
+      if (bank === 'off') { lb = Math.min(last, Math.max(s.start, lb + Math.round((this.rnd() - 0.5) * 6))); ls += this.rnd() * 0.01; }
+      // stay on the same stretch of tape while it still fits within 3 %: switching between takes changes the timbre
+      const sc = ls + (s === cur ? (ls < 0.03 ? -1 : 0) : 0.012); if (sc < bs) { bs = sc; best = lb; bseg = s; }
+    }
+    return [best, bseg];
+  }
+  spawn(bank, quick) {
+    const len = bank === 'lim' ? 36 : 12, r = this.rpm, target = bank === 'lim' ? 6490 : r + (len >> 1) * this.dR * (quick ? 0 : 1);
+    const [b, seg] = this.choose(bank, target, len, this.cp); if (b < 0) return;
+    let v = this.v.find(q => !q.on); if (!v) { v = this.v.reduce((a, q) => (q.born < a.born ? q : a)); }
+    const fade = quick ? 1.5 : 6;
+    if (this.main && this.main.on) { const m = this.main; if (quick) { for (const q of this.v) if (q.on) { q.len = Math.min(q.len, q.k + 2); q.fo = Math.min(q.fo, 1.5); } } else { m.len = Math.min(m.len, m.k + 6); m.fo = 6; } }
+    Object.assign(v, { on: true, b, k: 0, len, fi: fade, fo: 6, g: bank === 'on' ? 0.6 + 0.4 * this.thr : 1, seg, born: ++this.clock, bank });
+    this.main = v; this.jumps++;
+  }
+  tick(st) {
+    const bank = this.kind(st), r = this.rpm; this.cp = (this.cp + 1) % 6; this.dR += ((r - this.rPrev) - this.dR) * 0.35; this.rPrev = r;
+    for (const q of this.v) if (q.on && ++q.k >= q.len) q.on = false;
+    const m = this.main;
+    if (!m || !m.on || bank !== this.bk) { this.bk = bank; this.spawn(bank, true); return; }
+    const off = bank !== 'lim' && m.k >= 3 && Math.abs(Math.log(this.T[m.b + m.k] / r)) > 0.06;       // the engine ran away from this stretch of tape
+    if (m.k >= m.len - 6 || off) this.spawn(bank, false);
+  }
+  read(f, ph) { const x = (f + ph) * this.S, i = x | 0, p = this.p; return p[i] + (p[i + 1] - p[i]) * (x - i); }
+  process(out, n, st) {
+    const sr = this.sr, kr = 1 - Math.exp(-1 / (0.010 * sr)), kg = 1 - Math.exp(-1 / (0.030 * sr)), kd = 1 - Math.exp(-1 / (0.060 * sr)), kw = 1 - Math.exp(-1 / (0.090 * sr));
+    const gt = st.run ? (st.vol === undefined ? 1 : st.vol) : 0, kl = 1 - Math.exp(-2 * Math.PI * 900 / sr);
+    for (let i = 0; i < n; i++) {
+      this.rpm += (st.rpm - this.rpm) * kr; this.thr += (st.thr - this.thr) * kr;
+      // on the limiter the tape runs at its own recorded speed, so the cut rhythm is exactly the recorded one
+      const m = this.main; this.rp += ((this.bk === 'lim' && m && m.on ? this.T[m.b + m.k] : this.rpm) - this.rp) * kr * 2; this.ph += this.rp / 20 / sr;
+      if (this.ph >= 1) {
+        this.ph -= 1; this.tick(st);
+        if (this.ic + 1 >= this.i1) { this.io = this.ic + 1; this.ic = this.i0 + 6 * Math.floor(this.rnd() * 4); } else { this.ic++; this.io = -1; }
+      }
+      let a = 0; const ph = this.ph;
+      for (let j = 0; j < 4; j++) {
+        const q = this.v[j]; if (!q.on) continue;
+        const t = q.k + ph, w = Math.min(1, t / q.fi, (q.len - t) / q.fo); if (w > 0) a += this.read(q.b + q.k, ph) * w * q.g;
+      }
+      // clean cycle tables (the engine note without hiss), blended between the two nearest speeds; phase-locked to the grains
+      const W = this.wt, wo = this.bk === 'on' ? 1 : 0; this.wOn += (wo - this.wOn) * kr * 0.5;
+      let tb = 0, x0 = 0, fx = 0;
+      if (W) { const x = (this.cp + ph) * this.S; x0 = x | 0; fx = x - x0; }
+      if (W && this.wOn > 0.001) {
+        const R = W.rpm, nR = R.length; let ti = Math.floor((this.rpm - R[0]) / (R[1] - R[0])); ti = ti < 0 ? 0 : ti > nR - 2 ? nR - 2 : ti;
+        let tw = (this.rpm - R[ti]) / (R[ti + 1] - R[ti]); tw = tw < 0 ? 0 : tw > 1 ? 1 : tw;
+        const p = this.p, o0 = W.off + ti * (W.len + W.pad) + x0, o1 = o0 + W.len + W.pad;
+        tb = (p[o0] + (p[o0 + 1] - p[o0]) * fx) * (1 - tw) + (p[o1] + (p[o1 + 1] - p[o1]) * fx) * tw;
+        this.gOn = 0.6 + 0.4 * this.thr; const cw = this.clean * this.wOn; a = a * (1 - cw) + tb * cw * this.gOn;
+      }
+      let u = this.read(this.ic, ph);
+      if (this.io >= 0) { if (ph < 0.5) { const w = ph * 2; u = u * w + this.read(this.io, ph) * (1 - w); } else this.io = -1; }
+      if (W) { const p = this.p, o = W.idle + x0; u = u * (1 - 0.6 * this.clean) + (p[o] + (p[o + 1] - p[o]) * fx) * 0.6 * this.clean * 1.2; }
+      // loudness: the phone's auto-gain flattened the recording, so level is restored as a 9 dB rise from idle speed to the limiter (assumption)
+      const lv = 0.355 + 0.645 * Math.min(1, Math.max(0, (this.rpm - 800) / 5700)); this.dyn += (lv - this.dyn) * kd;
+      // the idle firing comes back gradually as the engine falls from ~1400 rpm to idle (fuel cut ends), instead of a hard switch at idle speed
+      const wt = this.onT || st.lim ? 0 : Math.min(1, Math.max(0, (1400 - this.rpm) / 520)); this.wI += (wt - this.wI) * kw;
+      // bite above 4000 rpm on throttle: presence lift (>900 Hz) and soft saturation of the recording itself, nothing synthesised
+      const at = this.agg * this.thr * Math.min(1, Math.max(0, (this.rpm - 3400) / 2400)); this.ag += (at - this.ag) * kd;
+      a *= this.dyn; this.lp += (a - this.lp) * kl; a += 0.85 * this.ag * (a - this.lp);
+      const dr = 1 + 1.5 * this.ag; a = Math.tanh(a * dr) / Math.sqrt(dr);
+      this.g += (gt - this.g) * kg; let y = (a * Math.sqrt(1 - this.wI) + u * 0.25 * Math.sqrt(this.wI)) * this.g;
+      // tone: the phone mic lost the low end of the M50; low shelf +bass dB under ~160 Hz, gentle high shelf -1.5 dB over 5 kHz
+      const L = this.eqL, H = this.eqH;
+      let z = L.b0 * y + L.b1 * L.x1 + L.b2 * L.x2 - L.a1 * L.y1 - L.a2 * L.y2; L.x2 = L.x1; L.x1 = y; L.y2 = L.y1; L.y1 = z; y = z;
+      z = H.b0 * y + H.b1 * H.x1 + H.b2 * H.x2 - H.a1 * H.y1 - H.a2 * H.y2; H.x2 = H.x1; H.x1 = y; H.y2 = H.y1; H.y1 = z;
+      out[i] = z * this.post;
+    }
+  }
+}
+if (typeof module !== 'undefined') module.exports = { CycleEngine };
+
+</script>
+<script>
+// E34 525i (M50B25 non-VANOS) longitudinal model. Verified data: 141 kW (192 PS) @ 6000, 245 Nm @ 4700, kerb 1480 kg, 205/65 R15, wheelbase 2761 mm,
+// ZF S5D 310Z 4.21/2.49/1.67/1.24/1.00, final drive 3.23, factory 0-100 km/h 8.6 s. From the owner's recording: limiter 6490 rpm, idle 737 rpm,
+// closed-throttle free decel 1850+0.12*(6490-rpm) rpm/s, floored free-rev 3330->6450 rpm in 0.5 s (gives the rotating inertia).
+// Estimates (no factory figure): driveline efficiency, wheel inertia, CdA, tyre friction, clutch capacity, torque between the two rated points.
+const TQ = [[700, 145], [1000, 165], [1500, 185], [2000, 198], [2500, 208], [3000, 217], [3500, 226], [4000, 236], [4700, 245], [5200, 242], [5500, 237], [6000, 224.4], [6300, 213], [6500, 204], [6800, 185]];
+// free-rev: full torque over the rotating inertia (the inertia itself comes from the recorded floored rise 3330->6450 rpm in 0.5 s); only a short
+// tip-in right off idle is limited. (The slow rise below 3300 in the recording was a slow foot, not the engine - the owner confirmed it revs quicker.)
+const REV = [[737, 3200], [1000, 4600], [1500, 6000], [7000, 7000]];
+function revRate(rpm) { if (rpm <= REV[0][0]) return REV[0][1]; for (let i = 1; i < REV.length; i++) if (rpm <= REV[i][0]) { const [x0, y0] = REV[i - 1], [x1, y1] = REV[i]; return y0 + (y1 - y0) * (rpm - x0) / (x1 - x0); } return REV[REV.length - 1][1]; }
+const GEARS = [4.21, 2.49, 1.67, 1.24, 1.00], IDLE = 737, LIM = 6490, LIM_HI = 6585, LIM_LO = 6345, G0 = 9.81, QM = 402.336;
+function wot(rpm) { if (rpm <= TQ[0][0]) return TQ[0][1]; for (let i = 1; i < TQ.length; i++) if (rpm <= TQ[i][0]) { const [a, b] = TQ[i - 1], [c, d] = TQ[i]; return b + (d - b) * (rpm - a) / (c - a); } return TQ[TQ.length - 1][1]; }
+function fall(r) { return Math.max(0, Math.min(1850 + 0.12 * (LIM - r), 4.0 * (r - IDLE))); }
+const UPG = {
+  tyre: { name: 'Шины', lv: [['Дорожные 205/65', 0, 1.00], ['Полуслик', 500, 1.18], ['Дрэг-радиал', 1100, 1.42]] },
+  mass: { name: 'Вес', lv: [['Сток 1480 кг', 0, 1480], ['Облегчение −80 кг', 450, 1400], ['Голый салон −160 кг', 1000, 1320]] },
+  eng: { name: 'Мотор', lv: [['Сток 192 л.с.', 0, 1.00], ['Впуск/выпуск/чип +5%', 600, 1.05], ['Распредвалы +10%', 1300, 1.10], ['Строкер 2.8 +18%', 2400, 1.18]] },
+  fd: { name: 'Главная пара', lv: [['3.23 сток', 0, 3.23], ['3.46', 400, 3.46], ['3.73', 800, 3.73]] },
+  shift: { name: 'Кулиса', lv: [['Сток 0.30 с', 0, 0.30], ['Короткоход 0.22 с', 300, 0.22], ['Гоночная 0.16 с', 750, 0.16]] },
+  fly: { name: 'Маховик', lv: [['Двухмассовый сток', 0, 1.00], ['Облегчённый', 550, 0.62]] },
+};
+function carFrom(up) {
+  const v = k => UPG[k].lv[(up && up[k]) || 0][2];
+  return { mu: v('tyre'), m: v('mass') + 75, tq: v('eng'), fd: v('fd'), shiftT: v('shift'), Ie: 0.35 * v('fly'), Iw: 2.6, r: 0.310, eta: 0.86, CdA: 0.64, crr: 0.013, cap: 430, h: 0.52, L: 2.761, rear: 0.49 };
+}
+class Car {
+  constructor(p) { this.p = p; this.reset(); }
+  reset() { Object.assign(this, { v: 0, vw: 0, x: 0, t: 0, we: IDLE * Math.PI / 30, gear: 0, clutch: 'open', capT: 0, shiftLeft: 0, nextGear: 0, cut: false, lz: false, slip: false, a: 0, thrEff: 0, t60: 0, t100: 0, tEnd: 0, vEnd: 0, shifts: [], launched: false, tLaunch: 0, launchRpm: 0 }); }
+  get rpm() { return this.we * 30 / Math.PI; }
+  shiftUp() { // from N: launch (clutch dump); in gear: lift-shift
+    if (this.gear === 0 && this.shiftLeft <= 0) { this.gear = 1; this.clutch = 'slip'; this.capT = 0; this.launched = true; this.launchRpm = this.rpm; return true; }
+    if (this.gear > 0 && this.gear < 5 && this.shiftLeft <= 0) { this.shifts.push(Math.round(this.rpm)); this.shiftLeft = this.p.shiftT; this.nextGear = this.gear + 1; this.clutch = 'open'; return true; }
+    return false;
+  }
+  step(dt, thr) {
+    const p = this.p, rpm = this.rpm;
+    // limiter as measured in the owner's recording: rpm swings 6345 <-> 6585 (mean ~6490) with a ~0.125 s period, falling ~3650 rpm/s and recovering ~3500 rpm/s
+    if (rpm >= LIM_HI) { this.cut = true; this.lz = true; } else if (rpm < LIM_LO) this.cut = false;
+    if (rpm < 6150 || thr < 0.5) this.lz = false;
+    const lifting = this.shiftLeft > 0; let th = (this.cut || lifting) ? 0 : thr; this.thrEff = th;
+    let Te = th * wot(rpm) * p.tq * (this.lz ? 0.55 : 1) - (1 - th) * (0.35 * fall(rpm) * Math.PI / 30 + 6);
+    if (this.cut && !lifting && thr > 0.5) Te = -0.35 * 3650 * Math.PI / 30;
+    // idle control with a slow hunt of the idle speed (two incommensurate slow waves + a random walk): about +-5..15 rpm, like a real M50 at idle
+    this.it = (this.it || 0) + dt; if (this.iw === undefined) { this.iw = 0; this.p1 = Math.random() * 6.3; this.p2 = Math.random() * 6.3; }
+    this.iw += (Math.random() - 0.5) * 60 * dt - this.iw * 1.5 * dt;
+    const hunt = 9.5 * Math.sin(2 * Math.PI * 0.55 * this.it + this.p1) + 5 * Math.sin(2 * Math.PI * 1.35 * this.it + this.p2) + this.iw;
+    if (th < 0.02 && rpm < IDLE + 40) Te += Math.max(0, (IDLE + hunt - rpm) * 0.9 + 14);
+    const Fres = this.v > 0.05 ? 0.5 * 1.2 * p.CdA * this.v * this.v + p.crr * p.m * G0 : 0;
+    const N = p.m * G0 * p.rear + p.m * Math.max(0, this.a) * p.h / p.L, R = this.gear > 0 ? GEARS[this.gear - 1] * p.fd : 0;
+    const sl = this.vw - this.v, muk = p.mu * (1 - 0.12 * Math.min(1, sl / 3) - 0.09 * Math.min(1, Math.max(0, sl - 8) / 8)), Fk = muk * N;
+    if (lifting) { this.shiftLeft -= dt; if (this.shiftLeft <= 0) { this.gear = this.nextGear; this.clutch = 'slip'; this.capT = 0.4; } }
+    let a = 0;
+    if (this.clutch === 'open' || this.gear === 0) {
+      this.we += Math.min(Te / p.Ie, revRate(rpm) * Math.PI / 30 * (0.35 / p.Ie)) * dt;
+      if (this.slip) { this.vw += (-Fk * p.r) / p.Iw * p.r * dt; a = (Fk - Fres) / p.m; if (this.vw <= this.v) { this.vw = this.v; this.slip = false; } }
+      else { a = -Fres / (p.m + p.Iw / (p.r * p.r)); }
+    } else if (this.clutch === 'slip') {
+      this.capT = Math.min(1, this.capT + dt / 0.16);
+      const wg = this.vw / p.r * R, dir = this.we >= wg ? 1 : -1, Tc = p.cap * this.capT * dir;
+      this.we += (Te - Tc) / p.Ie * dt;
+      const Tw = Tc * R * p.eta;
+      if (!this.slip) { a = (Tw / p.r - Fres) / (p.m + p.Iw / (p.r * p.r)); const F = p.m * a + Fres; if (F > p.mu * N) this.slip = true; }
+      if (this.slip) { this.vw += (Tw - Fk * p.r) / p.Iw * p.r * dt; a = (Fk - Fres) / p.m; if (this.vw <= this.v) { this.vw = this.v; this.slip = false; } }
+      const wg2 = (this.slip ? this.vw : this.v + a * dt) / p.r * R;
+      if ((this.we - wg2) * dir <= 0) { this.clutch = 'locked'; this.we = wg2; }
+      if (this.rpm < 600) this.we = 600 * Math.PI / 30;                                          // driver catches the bog
+    } else { // locked
+      const Irot = p.Iw + p.Ie * R * R * p.eta;
+      if (!this.slip) { a = (Te * R * p.eta / p.r - Fres) / (p.m + Irot / (p.r * p.r)); const F = p.m * a + Fres; if (F > p.mu * N) this.slip = true; }
+      if (this.slip) { this.vw += (Te * R * p.eta - Fk * p.r) / Irot * p.r * dt; a = (Fk - Fres) / p.m; if (this.vw <= this.v) { this.vw = this.v; this.slip = false; } }
+      this.we = (this.slip ? this.vw : this.v + a * dt) / p.r * R;
+      if (this.rpm < 700 && this.gear > 0) { this.clutch = 'slip'; this.capT = 0.3; this.we = 700 * Math.PI / 30; }
+    }
+    this.we = Math.max(this.we, 300 * Math.PI / 30);
+    this.a = a; const v0 = this.v; this.v = Math.max(0, this.v + a * dt); if (!this.slip) this.vw = this.v;
+    if (this.launched) {
+      const x0 = this.x; this.x += (v0 + this.v) / 2 * dt; this.t += dt;
+      if (!this.t60 && this.x >= 18.288) this.t60 = this.t;
+      if (!this.t100 && this.v >= 100 / 3.6) this.t100 = this.t;
+      if (!this.tEnd && this.x >= QM) { this.tEnd = this.t - (this.x - QM) / Math.max(1, this.v); this.vEnd = this.v; }
+    }
+  }
+}
+if (typeof module !== 'undefined') module.exports = { Car, carFrom, UPG, wot, fall, GEARS, IDLE, LIM, QM };
+
+</script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+const $ = id => document.getElementById(id);
+
+// ---------------- save (per browser; the page works without it)
+const KEY = 'm50drag.v1';
+const LEAGUES = [['Двор', 17.2, 60], ['Улица', 16.5, 90], ['Клуб', 16.0, 130], ['Трек-день', 15.4, 180], ['Про', 14.8, 240], ['Легенда', 14.2, 320]];
+let save = { cr: 0, up: {}, best: 0, best100: 0, bestRt: 0, league: 0, runs: 0, cut: true, snd: true };
+try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') Object.assign(save, s); } catch (e) {}
+const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} };
+
+// ---------------- scene
+const stage = $('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+const coarse = matchMedia('(pointer: coarse)').matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio, coarse ? 1.5 : 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+renderer.localClippingEnabled = true; stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b0d10);
+const pmrem = new THREE.PMREMGenerator(renderer); scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+const camera = new THREE.PerspectiveCamera(32, 1, 0.02, 30);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0.03, 0.14, 0.0); controls.enableDamping = true; controls.minDistance = 0.4; controls.maxDistance = 5; controls.enablePan = false;
+const key = new THREE.DirectionalLight(0xfff1e0, 2.4); key.position.set(2, 3, 3); scene.add(key);
+const rim = new THREE.DirectionalLight(0xbcd2ff, 1.3); rim.position.set(-2, 1.5, -2); scene.add(rim);
+scene.add(new THREE.HemisphereLight(0x9aa4b5, 0x1a1410, 0.55));
+function resize() {
+  const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  const d = 1.75 / Math.min(1, camera.aspect * 0.95), dir = new THREE.Vector3(0.42, 0.34, 0.84).normalize();   // fit the 0.9 m long engine + radiator in portrait too
+  if (!resize.done || resize.aspect !== (w > h)) { camera.position.copy(controls.target).addScaledVector(dir, d); resize.done = true; resize.aspect = w > h; }
+}
+addEventListener('resize', resize); resize();
+
+// ---------------- model (m50b25_v2: binary glTF + meshopt; shipped under a .wasm name because the host serves a fixed set of file types)
+const S = THREE.PropertyBinding.sanitizeNodeName;
+const OFF = { 1: 0, 5: 120, 3: 240, 6: 360, 2: 480, 4: 600 };
+let mixer = null, spins = [], chains = [], flames = [], lights = [], mount = null, mountQ0 = null, ready = false, clipT0 = 0, clipT1 = 4;
+const cutPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 0);   // removes the exhaust side (Blender -Y = glTF +Z)
+let cutMeshes = [], cutHide = [];
+const meta = await (await fetch('m50_meta.json')).json();
+const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+async function fetchModel(url) {
+  const r = await fetch(url); const total = +r.headers.get('content-length') || 9014864;
+  const rd = r.body.getReader(); const parts = []; let got = 0;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; $('pct').textContent = Math.min(99, Math.round(got / total * 100)) + '%'; }
+  const buf = new Uint8Array(got); let o = 0; for (const p of parts) { buf.set(p, o); o += p.length; } return buf.buffer;
+}
+const gltf = await loader.parseAsync(await fetchModel('m50-model.wasm'), '');
+const root = gltf.scene; scene.add(root);
+root.traverse(o => { if (o.isMesh) { o.frustumCulled = false; if (o.material) o.material.envMapIntensity = 0.9; } });
+const seenMat = new Set();   // bare cast iron reads as a black hole on a dark stage: lift it to the grey of a cleaned block
+root.traverse(o => { const m = o.isMesh && o.material; if (m && m.name === 'M50_CastIron' && !seenMat.has(m)) { seenMat.add(m); m.color.set(0x6b6763); m.metalness = 0.25; m.roughness = 0.72; } });
+mixer = new THREE.AnimationMixer(root);
+let tmin = 1e9, tmax = 0;
+for (const clip of gltf.animations) { for (const tr of clip.tracks) { tmin = Math.min(tmin, tr.times[0]); tmax = Math.max(tmax, tr.times[tr.times.length - 1]); } mixer.clipAction(clip).play(); }
+if (tmax > tmin) { clipT0 = tmin; clipT1 = tmax; }
+for (const [n, r] of Object.entries(meta.spin)) { const o = root.getObjectByName(S(n)); if (o) spins.push({ o, q0: o.quaternion.clone(), r }); }
+for (const [n, c] of Object.entries(meta.chains)) {
+  const o = root.getObjectByName(S(n)); if (!o) continue;
+  const ms = []; o.traverse(m => { if (m.isMesh && m.morphTargetInfluences) ms.push(m); }); chains.push({ ms, ...c });
+}
+const hideSet = new Set(meta.hide_in_cut);
+const sectionMat = new THREE.MeshBasicMaterial({ color: 0xb8432a, side: THREE.BackSide, clippingPlanes: [cutPlane] });
+for (const [n, g] of Object.entries(meta.groups)) {
+  const o = root.getObjectByName(S(n)); if (!o) continue;
+  if (hideSet.has(g.g) || g.hc) cutHide.push(o);
+  if (g.cut) {
+    const ms = []; o.traverse(m => { if (m.isMesh) ms.push(m); });
+    for (const m of ms) { m.material = m.material.clone(); m.material.side = THREE.FrontSide; const back = new THREE.Mesh(m.geometry, sectionMat); back.visible = false; m.add(back); cutMeshes.push({ m, back }); }
+  }
+}
+for (let n = 1; n <= 6; n++) {
+  const f = [root.getObjectByName(S(`Flame_${n}_Chamber`)), root.getObjectByName(S(`Flame_${n}_Column`)), root.getObjectByName(S(`Spark_${n}`))].filter(Boolean);
+  flames.push(f); const p = new THREE.Vector3(); if (f[0]) f[0].getWorldPosition(p);
+  const L = new THREE.PointLight(0xff9a40, 0, 0.35, 2); L.position.copy(p); scene.add(L); lights.push(L);
+}
+mount = root.getObjectByName('M50_MOUNT'); if (mount) mountQ0 = mount.quaternion.clone();
+let cutOn = !!save.cut;
+function applyVis() {
+  for (const { m, back } of cutMeshes) { m.material.clippingPlanes = cutOn ? [cutPlane] : []; m.material.needsUpdate = true; back.visible = cutOn; }
+  for (const o of cutHide) o.visible = !cutOn;
+  $('btnCut').setAttribute('aria-pressed', cutOn);
+}
+applyVis();
+$('btnCut').onclick = () => { cutOn = !cutOn; save.cut = cutOn; persist(); applyVis(); };
+window.__view = (p, t) => { camera.position.set(...p); controls.target.set(...t); controls.update(); };
+window.__dbg = () => ({ cutHide: cutHide.length, cutMeshes: cutMeshes.length, spins: spins.length, chains: chains.map(c => c.ms.length), clips: gltf.animations.length, clipT0, clipT1, mode, phase, rpm: car.rpm, v: car.v, x: car.x, gear: car.gear, audio: !!node, sndReady });
+$('loading').hidden = true; ready = true;
+
+// ---------------- sound: the owner's recording in the crank-angle domain, played by CycleEngine in an AudioWorklet
+const cycSrc = $('cyc').textContent;
+const soundFiles = Promise.all([fetch('m50_cycles.wav').then(r => r.arrayBuffer()), fetch('m50_cycles.json').then(r => r.json())]);
+let ctx = null, node = null, sndReady = false; const A = { rpm: 737, thr: 0, lim: false, run: false, vol: 0.9 };
+async function ensureAudio() {
+  if (ctx) { if (ctx.state !== 'running') { try { await ctx.resume(); } catch (e) {} } return; }
+  try {
+    ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+    const proc = cycSrc + `\nclass P extends AudioWorkletProcessor{constructor(){super();this.e=null;this.st={rpm:737,thr:0,lim:false,run:false,vol:0.9};
+this.port.onmessage=e=>{const d=e.data;if(d.pcm){this.e=new CycleEngine(sampleRate,d.pcm,d.meta);this.port.postMessage({ok:1});}else Object.assign(this.st,d);};}
+process(i,o){const out=o[0],L=out[0];if(this.e)this.e.process(L,L.length,this.st);for(let c=1;c<out.length;c++)out[c].set(L);return true;}}
+registerProcessor('m50cyc',P);`;
+    await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([proc], { type: 'application/javascript' })));
+    node = new AudioWorkletNode(ctx, 'm50cyc', { outputChannelCount: [2] });
+    node.port.onmessage = () => { sndReady = true; };
+    node.connect(ctx.destination); await ctx.resume();
+    const [wav, sm] = await soundFiles;                         // 16-bit PCM is read as is: the frame grid must not be resampled
+    const dv = new DataView(wav); let p = 12, off = 44, len = 0;
+    while (p + 8 <= dv.byteLength) { const id = dv.getUint32(p), sz = dv.getUint32(p + 4, true); if (id === 0x64617461) { off = p + 8; len = sz; break; } p += 8 + sz + (sz & 1); }
+    const n = Math.floor(Math.min(len, dv.byteLength - off) / 2), pcm = new Float32Array(n + 8);
+    for (let i = 0; i < n; i++) pcm[i] = dv.getInt16(off + i * 2, true) / 32768;
+    node.port.postMessage({ pcm, meta: sm }, [pcm.buffer]);
+  } catch (err) { console.warn('audio unavailable, running silent', err); node = null; }
+}
+function sendAudio() { if (node) node.port.postMessage({ rpm: A.rpm, thr: A.thr, lim: A.lim, run: A.run, vol: save.snd ? A.vol : 0 }); }
+$('btnSnd').setAttribute('aria-pressed', !!save.snd);
+$('btnSnd').onclick = () => { save.snd = !save.snd; persist(); $('btnSnd').setAttribute('aria-pressed', save.snd); ensureAudio(); };
+
+// ---------------- game state
+let car = new Car(carFrom(save.up)); let mode = 'menu', phase = 'idle', tPhase = 0, tGreen = 0, rt = 0, foul = false, ghostT = 0, lastRes = null;
+let pedal = false, visTh = 0;
+const sheets = ['sheetMenu', 'sheetGarage', 'sheetRes'];
+function show(id) { for (const s of sheets) $(s).hidden = s !== id; $('dock').hidden = !!id && id !== 'sheetRes' ? true : false; if (id === 'sheetMenu') drawMenu(); if (id === 'sheetGarage') drawGarage(); }
+function drawMenu() {
+  $('leagueBar').innerHTML = LEAGUES.map((l, i) => `<i class="${i < save.league ? 'on' : i === save.league ? 'cur' : ''}" title="${l[0]} ${l[1]}"></i>`).join('');
+  const L = LEAGUES[Math.min(save.league, LEAGUES.length - 1)];
+  $('menuInfo').innerHTML = (save.league >= LEAGUES.length ? 'Все лиги пройдены · ' : `Лига «${L[0]}»: проехать за <b style="color:var(--fg)">${L[1].toFixed(1)} с</b> · приз ${L[2]} кр · `) +
+    `кредиты <b style="color:var(--gold)">${save.cr}</b>` + (save.best ? ` · рекорд ${save.best.toFixed(3)} с` : '') + (save.best100 ? ` · 0–100 ${save.best100.toFixed(2)} с` : '');
+}
+function drawGarage() {
+  $('gCr').textContent = save.cr + ' кр';
+  $('gList').innerHTML = Object.entries(UPG).map(([k, u]) => {
+    const lv = save.up[k] || 0, nx = u.lv[lv + 1];
+    return `<div class="up"><div><b>${u.name}</b> <span>${u.lv[lv][0]}</span></div>` +
+      (nx ? `<button class="small" data-up="${k}" ${save.cr < nx[1] ? 'disabled' : ''}>${nx[0]} · ${nx[1]} кр</button>` : '<span class="gold">максимум</span>') +
+      `<div class="lv">${u.lv.map((_, i) => `<i class="${i <= lv ? 'on' : ''}"></i>`).join('')}</div></div>`;
+  }).join('');
+  for (const b of $('gList').querySelectorAll('button[data-up]')) b.onclick = () => {
+    const k = b.dataset.up, lv = save.up[k] || 0, nx = UPG[k].lv[lv + 1]; if (!nx || save.cr < nx[1]) return;
+    save.cr -= nx[1]; save.up[k] = lv + 1; persist(); car = new Car(carFrom(save.up)); drawGarage();
+  };
+}
+function setTree(a, cls) { const L = $('tree').querySelectorAll('i'); L.forEach((e, i) => { e.className = i < a ? (cls || 'a') : ''; }); }
+function startRace() {
+  ensureAudio(); car = new Car(carFrom(save.up)); mode = 'race'; phase = 'stage'; tPhase = 0; foul = false; rt = 0; ghostT = 0; A.run = true;
+  setTree(0); $('msg').textContent = 'газ в пол не обязательно: подбери обороты старта'; show(null);
+}
+function startBench() { ensureAudio(); car = new Car(carFrom(save.up)); mode = 'bench'; phase = 'idle'; A.run = true; setTree(0); $('msg').textContent = 'стенд: нейтраль, газуй сколько хочешь'; show(null); }
+function toMenu() { mode = 'menu'; phase = 'idle'; A.run = false; pedal = false; show('sheetMenu'); }
+function doShift() {
+  if (mode !== 'race') return;
+  if (phase === 'stage' || phase === 'tree') { foul = true; phase = 'run'; setTree(4, 'r'); $('msg').textContent = 'фальстарт — заезд не в зачёт'; car.shiftUp(); return; }
+  if (phase === 'go') { rt = tPhase; phase = 'run'; $('msg').textContent = 'реакция ' + rt.toFixed(3) + ' с'; car.shiftUp(); return; }
+  if (phase === 'run') car.shiftUp();
+}
+function finish() {
+  phase = 'done'; const L = LEAGUES[Math.min(save.league, LEAGUES.length - 1)], et = car.tEnd;
+  const perfect = car.shifts.filter(r => r >= 6100 && r < 6585).length; let pay = 0; const lines = [];
+  let title = 'Финиш', line = '';
+  if (foul) { title = 'Фальстарт'; line = 'Стартовал до зелёного — время не засчитано.'; }
+  else {
+    pay += 40; lines.push('заезд +40');
+    if (perfect) { pay += perfect * 15; lines.push(`точные переключения ×${perfect} +${perfect * 15}`); }
+    if (rt < 0.2) { pay += 20; lines.push('реакция быстрее 0.2 с +20'); }
+    if (!save.best || et < save.best) { if (save.best) { pay += 30; lines.push('личный рекорд +30'); } save.best = et; }
+    if (car.t100 && (!save.best100 || car.t100 < save.best100)) save.best100 = car.t100;
+    if (!save.bestRt || rt < save.bestRt) save.bestRt = rt;
+    if (save.league < LEAGUES.length && et <= L[1]) { pay += L[2]; lines.push(`лига «${L[0]}» пройдена +${L[2]}`); save.league++; title = 'Лига пройдена'; line = save.league < LEAGUES.length ? `Дальше — «${LEAGUES[save.league][0]}», нужно ${LEAGUES[save.league][1].toFixed(1)} с.` : 'Это была последняя лига.'; }
+    else if (save.league < LEAGUES.length) line = `До лиги «${L[0]}» не хватило ${(et - L[1]).toFixed(2)} с.`;
+    save.cr += pay; save.runs++;
+  }
+  persist();
+  $('rTitle').textContent = title; $('rEt').innerHTML = et.toFixed(3) + ' <small>с · ' + (car.vEnd * 3.6).toFixed(0) + ' км/ч</small>'; $('rLine').textContent = line;
+  const st = [['реакция', foul ? '—' : rt.toFixed(3) + ' с'], ['60 футов', car.t60.toFixed(2) + ' с'], ['0–100 км/ч', car.t100 ? car.t100.toFixed(2) + ' с' : '—'], ['старт', Math.round(car.launchRpm) + ' об/мин'], ['переключения', car.shifts.join(' · ') || '—']];
+  $('rStats').innerHTML = st.map(([a, b]) => `<div class="stat"><b>${b}</b><span>${a}</span></div>`).join('');
+  $('rPay').innerHTML = foul ? '' : lines.join(' · ') + ` · итого <b class="gold">+${pay} кр</b> (всего ${save.cr})`;
+  lastRes = `M50 ДРАГ: 402 м за ${et.toFixed(3)} с, ${(car.vEnd * 3.6).toFixed(0)} км/ч на финише, реакция ${rt.toFixed(3)} с, 0–100 за ${car.t100 ? car.t100.toFixed(2) : '—'} с. E34 525i M50B25.`;
+  setTimeout(() => { if (phase === 'done') show('sheetRes'); }, 900);
+}
+$('mRace').onclick = startRace; $('gRace').onclick = startRace; $('rAgain').onclick = startRace;
+$('mGarage').onclick = () => show('sheetGarage'); $('rGarage').onclick = () => { mode = 'menu'; A.run = false; show('sheetGarage'); };
+$('gBack').onclick = toMenu; $('mBench').onclick = startBench; $('btnMenu').onclick = toMenu;
+$('rShare').onclick = async () => { try { await navigator.clipboard.writeText(lastRes); $('rShare').textContent = 'Скопировано'; } catch (e) { $('rShare').textContent = lastRes; } setTimeout(() => { $('rShare').textContent = 'Скопировать результат'; }, 2500); };
+
+// ---------------- input
+const gasB = $('gas'), shB = $('shift');
+const press = v => { pedal = v; gasB.classList.toggle('down', v); };
+gasB.addEventListener('pointerdown', e => { e.preventDefault(); try { gasB.setPointerCapture(e.pointerId); } catch (_) {} press(true); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) gasB.addEventListener(ev, () => press(false));
+shB.addEventListener('pointerdown', e => { e.preventDefault(); shB.classList.add('down'); doShift(); });
+for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) shB.addEventListener(ev, () => shB.classList.remove('down'));
+const GAS = new Set([' ', 'w', 'ц', 'arrowup']), SHF = new Set(['shift', 'arrowright', 'd', 'в', 'enter']);
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase(); if (mode === 'menu') return;
+  if (GAS.has(k)) { e.preventDefault(); if (!e.repeat) press(true); }
+  else if (SHF.has(k)) { e.preventDefault(); if (!e.repeat) { shB.classList.add('down'); doShift(); } }
+  else if (k === 'escape') toMenu(); else if (k === 'r' || k === 'к') startRace();
+});
+addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (GAS.has(k)) press(false); if (SHF.has(k)) shB.classList.remove('down'); });
+addEventListener('blur', () => press(false));
+
+// ---------------- instruments
+const tc = $('tach'), g = tc.getContext('2d');
+function drawTach(rpm, lamp) {
+  const W = tc.width, c = W / 2, R = W * 0.44; g.clearRect(0, 0, W, W);
+  g.fillStyle = '#0a0b0d'; g.beginPath(); g.arc(c, c, R + 10, 0, 7); g.fill(); g.strokeStyle = lamp ? '#ff8a2a' : '#2a2e35'; g.lineWidth = lamp ? 7 : 3; g.stroke();
+  const a0 = Math.PI * 0.75, span = Math.PI * 1.5, ang = v => a0 + span * v / 7000;
+  g.strokeStyle = '#e2382b'; g.lineWidth = 12; g.beginPath(); g.arc(c, c, R - 8, ang(6500), ang(7000)); g.stroke();
+  for (let v = 0; v <= 7000; v += 250) {
+    const a = ang(v), big = v % 1000 === 0, r1 = R - (big ? 24 : 14);
+    g.strokeStyle = v >= 6500 ? '#e2382b' : '#ece9e2'; g.lineWidth = big ? 4 : 2;
+    g.beginPath(); g.moveTo(c + Math.cos(a) * r1, c + Math.sin(a) * r1); g.lineTo(c + Math.cos(a) * (R - 2), c + Math.sin(a) * (R - 2)); g.stroke();
+    if (big) { g.fillStyle = '#ece9e2'; g.font = '600 32px "Barlow Condensed", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(v / 1000, c + Math.cos(a) * (R - 48), c + Math.sin(a) * (R - 48)); }
+  }
+  g.fillStyle = '#8d9099'; g.font = '500 18px "Barlow Condensed", sans-serif'; g.fillText('1/min ×1000', c, c + 52);
+  g.fillStyle = '#ece9e2'; g.font = '600 36px "JetBrains Mono", monospace'; g.fillText(String(Math.round(rpm)), c, c + 92);
+  const a = ang(Math.min(rpm, 7200)); g.strokeStyle = '#ff4d1f'; g.lineWidth = 7; g.lineCap = 'round'; g.beginPath();
+  g.moveTo(c - Math.cos(a) * 24, c - Math.sin(a) * 24); g.lineTo(c + Math.cos(a) * (R - 16), c + Math.sin(a) * (R - 16)); g.stroke(); g.lineCap = 'butt';
+  g.fillStyle = '#1b1e24'; g.beginPath(); g.arc(c, c, 15, 0, 7); g.fill();
+}
+const sc = $('strip'), sg = sc.getContext('2d');
+function drawStrip() {
+  const W = sc.width, H = sc.height, x0 = 18, x1 = W - 18, y = H * 0.56, X = d => x0 + (x1 - x0) * Math.min(1, d / QM);
+  sg.clearRect(0, 0, W, H); sg.strokeStyle = '#2a2e35'; sg.lineWidth = 16; sg.lineCap = 'round'; sg.beginPath(); sg.moveTo(x0, y); sg.lineTo(x1, y); sg.stroke();
+  sg.font = '500 17px "JetBrains Mono", monospace'; sg.textAlign = 'center'; sg.fillStyle = '#8d9099'; sg.lineWidth = 2; sg.strokeStyle = '#5a5f6a'; sg.lineCap = 'butt';
+  for (const [d, t] of [[18.288, '60 фт'], [201.168, '201 м'], [QM, '402']]) { const x = X(d); sg.beginPath(); sg.moveTo(x, y - 14); sg.lineTo(x, y + 14); sg.stroke(); sg.fillText(t, Math.min(x, W - 26), 15); }
+  if (mode === 'race' && save.league < LEAGUES.length) {
+    const T = LEAGUES[save.league][1], gx = QM * Math.pow(Math.min(1, ghostT / T), 1.9);               // league pace marker
+    sg.fillStyle = '#f2c14e'; sg.beginPath(); sg.arc(X(gx), y + 20, 6, 0, 7); sg.fill();
+  }
+  sg.fillStyle = car.slip ? '#e2382b' : '#ff8a2a'; sg.beginPath(); sg.arc(X(car.x), y, 10, 0, 7); sg.fill();
+}
+
+// ---------------- frame
+const qx = new THREE.Quaternion(), XA = new THREE.Vector3(1, 0, 0); const clock = new THREE.Clock();
+function applyAngle(t, burning) {
+  mixer.setTime(clipT0 + (t / 720) * (clipT1 - clipT0));
+  for (const s of spins) { qx.setFromAxisAngle(XA, -THREE.MathUtils.degToRad(t) * s.r); s.o.quaternion.copy(s.q0).multiply(qx); }
+  for (const ch of chains) {
+    const off = ((THREE.MathUtils.degToRad(t) * ch.R) % ch.P + ch.P) % ch.P, x = off / ch.P * ch.K, i = Math.floor(x), f = x - i;
+    for (const m of ch.ms) { const w = m.morphTargetInfluences; w.fill(0); if (i > 0) w[i - 1] = 1 - f; if (i + 1 < ch.K) w[i] = f; }
+  }
+  for (let n = 1; n <= 6; n++) {
+    const F = OFF[n] + 360 - 12, f = Math.max(0, 1 - (((t - F) % 720 + 720) % 720) / 70);
+    for (const o of flames[n - 1]) o.visible = burning; lights[n - 1].intensity = burning ? f * 2.5 : 0;
+  }
+}
+let angT = 0;
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.1) * (window.__warp || 1); if (!ready) return;
+  const running = mode !== 'menu'; let thr = 0;
+  if (running) {
+    thr = pedal && phase !== 'done' ? 1 : 0;
+    if (mode === 'race') {
+      tPhase += dt;
+      if (phase === 'stage' && tPhase > 1.6) { phase = 'tree'; tPhase = 0; }
+      else if (phase === 'tree') { const n = Math.min(3, Math.floor(tPhase / 0.5) + 1); setTree(n); if (tPhase >= 1.5) { phase = 'go'; tPhase = 0; setTree(4, 'g'); $('msg').textContent = 'ЗЕЛЁНЫЙ — передача!'; } }
+      if (phase === 'run' || phase === 'done') ghostT += dt;
+    }
+    const n = Math.max(1, Math.ceil(dt * 600)), h = dt / n;
+    for (let i = 0; i < n; i++) { car.step(h, thr); if (mode === 'race' && phase === 'run' && car.tEnd) { finish(); } }
+    if (phase === 'done' && car.gear !== 0) { car.gear = 0; car.clutch = 'open'; car.shiftLeft = 0; }
+    if (phase === 'done') car.v = Math.max(0, car.v - 6 * dt);
+  }
+  A.rpm = car.rpm; A.thr = running ? car.thrEff : 0; A.lim = running && car.lz && thr > 0; if (!running) A.run = false; sendAudio();
+  const rpm = running ? car.rpm : 0; angT = (angT + rpm * 6 * dt) % 720; visTh = angT;
+  applyAngle(visTh, running && !(car.cut && thr > 0) && cutOn);
+  if (mount && mountQ0) {
+    const lean = running ? 0.004 + 0.013 * car.thrEff * Math.min(1, rpm / 3000) : 0, vib = running ? Math.sin(THREE.MathUtils.degToRad(visTh) * 3) * 0.0012 * (rpm < 1200 ? 1 : 0.4) : 0;
+    qx.setFromAxisAngle(XA, lean + vib); mount.quaternion.copy(mountQ0).multiply(qx);
+  }
+  if (running) {
+    drawTach(car.rpm, car.rpm > 6100 && car.gear > 0 && car.gear < 5); drawStrip();
+    const ge = $('gear'); ge.textContent = car.gear === 0 ? 'N' : car.gear; ge.classList.toggle('shift', car.rpm > 6100 && car.gear > 0 && car.gear < 5 && !car.cut); ge.classList.toggle('cutting', car.cut);
+    $('spd').textContent = Math.round(car.v * 3.6); $('tim').textContent = (car.tEnd || car.t).toFixed(2); $('dst').textContent = Math.min(402, Math.floor(car.x));
+  }
+  controls.update(); renderer.render(scene, camera);
+});
+applyAngle(0, false); drawTach(737, false); show('sheetMenu');
+</script>
+
+</body>
+</html>
