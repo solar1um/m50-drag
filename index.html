@@ -51,7 +51,7 @@ button.toggle[aria-pressed="true"] { border-color: var(--amber); color: var(--am
 <div class="top">
   <h1>BMW M50B25</h1>
   <div class="right">
-    <button class="toggle" id="btnCut" aria-pressed="true">Разрез</button>
+    <button class="toggle" id="btnCut" aria-pressed="false">Разрез</button>
     <button class="toggle" id="btnSnd" aria-pressed="true">Звук</button>
   </div>
 </div>
@@ -271,8 +271,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 const $ = id => document.getElementById(id);
-const KEY = 'm50stand.v1';
-let save = { cut: true, snd: true };
+const KEY = 'm50stand.v2';
+let save = { cut: false, snd: true };
 try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') Object.assign(save, s); } catch (e) {}
 const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} };
 let car = new Car(carFrom({}));
@@ -368,7 +368,7 @@ registerProcessor('m50cyc',P);`;
     await ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([proc], { type: 'application/javascript' })));
     node = new AudioWorkletNode(ctx, 'm50cyc', { outputChannelCount: [2] });
     node.port.onmessage = () => { sndReady = true; };
-    node.connect(ctx.destination); await ctx.resume();
+    node.connect(ctx.destination); ctx.resume().catch(() => {});   // plays at once where autoplay is allowed, otherwise on the first touch
     const [wav, sm] = await soundFiles;                         // 16-bit PCM is read as is: the frame grid must not be resampled
     const dv = new DataView(wav); let p = 12, off = 44, len = 0;
     while (p + 8 <= dv.byteLength) { const id = dv.getUint32(p), sz = dv.getUint32(p + 4, true); if (id === 0x64617461) { off = p + 8; len = sz; break; } p += 8 + sz + (sz & 1); }
@@ -387,6 +387,8 @@ const press = v => { pedal = v; gasB.classList.toggle('down', v); if (v && save.
 gasB.addEventListener('pointerdown', e => { e.preventDefault(); try { gasB.setPointerCapture(e.pointerId); } catch (_) {} press(true); });
 for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) gasB.addEventListener(ev, () => press(false));
 addEventListener('pointerdown', () => { if (save.snd) ensureAudio(); }, { once: true });
+addEventListener('keydown', () => { if (save.snd) ensureAudio(); }, { once: true });
+if (save.snd) ensureAudio();                      // sound on by default: the browser releases it on the first gesture
 const GAS = new Set([' ', 'w', 'ц', 'arrowup']);
 addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (GAS.has(k)) { e.preventDefault(); if (!e.repeat) press(true); } else if (k === 'c' || k === 'с') $('btnCut').click(); });
 addEventListener('keyup', e => { if (GAS.has(e.key.toLowerCase())) press(false); });
