@@ -3,16 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>M50 Драг 402</title>
+<title>BMW M50B25</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: full-bleed 3D engine (cutaway) as the hero, drag-strip instruments docked at the bottom, menus as centred sheets.
-   One dark look by choice (night strip); colours are tokens so a light scheme never fights the 3D scene. */
+/* Engine stand: the 3D M50 fills the screen, a tachometer and a hold-to-rev button sit at the bottom. One dark look by choice. */
 :root {
-  --bg: #0b0d10; --panel: rgba(16, 18, 22, 0.92); --line: #2a2e35; --fg: #ece9e2; --muted: #8d9099;
-  --amber: #ff8a2a; --needle: #ff4d1f; --red: #e2382b; --ok: #58d07c; --gold: #f2c14e;
+  --bg: #0b0d10; --line: #2a2e35; --fg: #ece9e2; --muted: #8d9099; --amber: #ff8a2a;
   --display: "Barlow Condensed", "Arial Narrow", sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
   color-scheme: dark;
 }
@@ -24,119 +22,44 @@ body { background: var(--bg); color: var(--fg); font-family: var(--display); ove
 [hidden] { display: none !important; }
 #stage { position: fixed; inset: 0; }
 #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
-.top { position: fixed; z-index: 3; top: calc(10px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
-  display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; pointer-events: none; }
+.top { position: fixed; z-index: 3; top: calc(12px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; pointer-events: none; }
 .top h1 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: .03em; line-height: 1; }
-.top p { margin: 3px 0 0; font-family: var(--mono); font-size: 11px; color: var(--muted); }
-.top .right { display: flex; gap: 6px; pointer-events: auto; flex-wrap: wrap; justify-content: flex-end; }
+.top .right { display: flex; gap: 6px; pointer-events: auto; }
 button { font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--fg);
   background: #1b1e24; border: 1px solid var(--line); border-radius: 6px; padding: 8px 13px; cursor: pointer; touch-action: manipulation; }
 button:hover { border-color: #4a505c; }
 button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
-button.primary { background: var(--amber); color: #1a1206; border-color: var(--amber); }
-button.small { font-size: 14px; padding: 6px 9px; }
 button.toggle[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
-button:disabled { opacity: .45; cursor: default; }
-.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
-  background: linear-gradient(to top, rgba(6,7,9,.97), rgba(6,7,9,.82) 72%, rgba(6,7,9,0)); display: grid; gap: 8px; grid-template-columns: auto 1fr auto; align-items: end; }
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 4; padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; pointer-events: none;
+  background: linear-gradient(to top, rgba(6,7,9,.9), rgba(6,7,9,0)); }
+.dock > * { pointer-events: auto; }
 #tach { width: 170px; height: 170px; }
-.mid { display: grid; gap: 6px; min-width: 0; }
-.nums { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.gear { font-size: 64px; font-weight: 700; line-height: .8; min-width: 38px; text-align: center; }
-.gear.shift { color: var(--amber); text-shadow: 0 0 18px rgba(255,138,42,.7); }
-.gear.cutting { color: var(--red); }
-.kv { display: grid; } .kv b { font-family: var(--mono); font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; }
-.kv span { font-size: 12px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
-#strip { width: 100%; height: 46px; display: block; }
-.msg { font-family: var(--mono); font-size: 12px; color: var(--muted); min-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tree { display: flex; gap: 7px; align-items: center; }
-.tree i { width: 16px; height: 16px; border-radius: 50%; background: #23262c; border: 1px solid var(--line); display: block; }
-.tree i.a { background: var(--amber); box-shadow: 0 0 12px var(--amber); } .tree i.g { background: var(--ok); box-shadow: 0 0 14px var(--ok); } .tree i.r { background: var(--red); box-shadow: 0 0 14px var(--red); }
-.pedals { display: flex; gap: 8px; align-items: stretch; }
-.pedals button { width: 116px; height: 92px; font-size: 18px; padding: 6px; border-radius: 12px; background-color: #23262d; }
-#gas { background-image: repeating-linear-gradient(0deg, transparent 0 9px, rgba(255,255,255,.05) 9px 11px); }
-#gas.down, #shift.down { background-color: var(--amber); color: #1a1206; transform: translateY(2px); }
-.pedals small { display: block; font-family: var(--mono); font-size: 10px; font-weight: 400; color: var(--muted); letter-spacing: 0; text-transform: none; margin-top: 4px; }
-#gas.down small, #shift.down small { color: #1a1206; }
-.sheet { position: fixed; z-index: 6; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(5,6,8,.55); overflow: auto; }
-.card { width: min(560px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 12px; backdrop-filter: blur(6px); }
-.card h2 { margin: 0; font-size: 30px; letter-spacing: .03em; line-height: 1; } .card h2 small { font-size: 15px; color: var(--muted); font-weight: 500; margin-left: 8px; }
-.card p { margin: 0; font-size: 16px; line-height: 1.35; color: #c9c6bf; }
-.card .mono { font-family: var(--mono); font-size: 12px; color: var(--muted); line-height: 1.6; }
-.rowb { display: flex; gap: 8px; flex-wrap: wrap; }
-.big { font-family: var(--mono); font-size: 54px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; } .big small { font-size: 18px; color: var(--muted); }
-.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
-.stat { border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; } .stat b { font-family: var(--mono); font-size: 18px; display: block; font-variant-numeric: tabular-nums; } .stat span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.good { color: var(--ok); } .bad { color: var(--red); } .gold { color: var(--gold); }
-.up { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; border-top: 1px solid var(--line); padding-top: 9px; }
-.up b { font-size: 19px; } .up span { font-size: 14px; color: var(--muted); } .up .lv { grid-column: 1 / -1; display: flex; gap: 4px; }
-.up .lv i { height: 4px; flex: 1; background: #2a2e35; border-radius: 2px; } .up .lv i.on { background: var(--amber); }
-.league { display: flex; gap: 4px; } .league i { flex: 1; height: 6px; border-radius: 3px; background: #2a2e35; } .league i.on { background: var(--gold); } .league i.cur { background: var(--amber); }
-#loading { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; background: var(--bg); text-align: center; font-family: var(--mono); font-size: 13px; color: var(--muted); line-height: 1.8; }
+#gas { width: 120px; height: 96px; font-size: 22px; border-radius: 12px; background-color: #23262d;
+  background-image: repeating-linear-gradient(0deg, transparent 0 9px, rgba(255,255,255,.05) 9px 11px); }
+#gas.down { background-color: var(--amber); color: #1a1206; transform: translateY(2px); }
+#loading { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; background: var(--bg); font-family: var(--mono); font-size: 13px; color: var(--muted); }
 #loading b { color: var(--amber); font-size: 34px; font-family: var(--display); }
-@media (max-width: 720px) {
-  .dock { grid-template-columns: auto 1fr; } .pedals { grid-column: 1 / -1; } .pedals button { flex: 1; height: 84px; }
-  #tach { width: 118px; height: 118px; } .gear { font-size: 50px; } .kv b { font-size: 19px; } .top h1 { font-size: 19px; } .top p { display: none; }
-}
-@media (max-height: 520px) and (orientation: landscape) { #tach { width: 104px; height: 104px; } .pedals button { height: 70px; } #strip { height: 34px; } }
-@media (prefers-reduced-motion: reduce) { #gas.down, #shift.down { transform: none; } }
+@media (max-width: 640px) { #tach { width: 124px; height: 124px; } .top h1 { font-size: 19px; } #gas { width: 104px; height: 84px; } }
+@media (prefers-reduced-motion: reduce) { #gas.down { transform: none; } }
 </style>
 
 </head>
 <body>
 <div id="stage"></div>
 <div class="top">
-  <div><h1>M50 ДРАГ · 402 м</h1><p>E34 525i · M50B25 · 192 л.с. · ZF 5-ст. · звук — твоя запись</p></div>
+  <h1>BMW M50B25</h1>
   <div class="right">
-    <button class="small toggle" id="btnCut" aria-pressed="true">Разрез</button>
-    <button class="small toggle" id="btnSnd" aria-pressed="true">Звук</button>
-    <button class="small" id="btnMenu">Меню</button>
+    <button class="toggle" id="btnCut" aria-pressed="true">Разрез</button>
+    <button class="toggle" id="btnSnd" aria-pressed="true">Звук</button>
   </div>
 </div>
-
-<div class="dock" id="dock" hidden>
+<div class="dock">
   <canvas id="tach" width="340" height="340" aria-label="Тахометр"></canvas>
-  <div class="mid">
-    <div class="tree" id="tree" aria-label="Стартовый светофор"><i></i><i></i><i></i><i></i><span class="msg" id="msg"></span></div>
-    <div class="nums">
-      <div class="gear" id="gear">N</div>
-      <div class="kv"><b id="spd">0</b><span>км/ч</span></div>
-      <div class="kv"><b id="tim">0.00</b><span>время, с</span></div>
-      <div class="kv"><b id="dst">0</b><span>метров</span></div>
-    </div>
-    <canvas id="strip" width="900" height="92" aria-label="Трасса 402 м"></canvas>
-  </div>
-  <div class="pedals">
-    <button id="shift" aria-label="Передача вверх">Передача ▲<small>Shift / →</small></button>
-    <button id="gas" aria-label="Газ, удерживать">Газ<small>Пробел / ↑</small></button>
-  </div>
+  <button id="gas" aria-label="Газ, удерживать">Газ</button>
 </div>
-
-<div class="sheet" id="sheetMenu" hidden><div class="card">
-  <h2>M50 ДРАГ <small>¼ мили на E34 525i</small></h2>
-  <p>Держи газ, на зелёный жми «Передача» — это старт с первой. Переключайся у красной зоны, не упирайся в отсечку (~6500). Заработал кредиты — прокачай машину в гараже.</p>
-  <div class="league" id="leagueBar"></div>
-  <div class="mono" id="menuInfo"></div>
-  <div class="rowb"><button class="primary" id="mRace">Заезд</button><button id="mGarage">Гараж</button><button id="mBench">Стенд</button></div>
-  <div class="mono">Звук мотора собран только из твоей записи «мой м50.mp3»: холостые, разгон, отсечка, сбросы. Стартера, шин и ветра в записи нет — их нет и в игре.</div>
-</div></div>
-
-<div class="sheet" id="sheetGarage" hidden><div class="card">
-  <h2>Гараж <small id="gCr"></small></h2>
-  <div id="gList"></div>
-  <div class="rowb"><button class="primary" id="gRace">Заезд</button><button id="gBack">Назад</button></div>
-</div></div>
-
-<div class="sheet" id="sheetRes" hidden><div class="card">
-  <h2 id="rTitle">Финиш</h2>
-  <div class="big" id="rEt">—</div>
-  <p id="rLine"></p>
-  <div class="grid2" id="rStats"></div>
-  <div class="mono" id="rPay"></div>
-  <div class="rowb"><button class="primary" id="rAgain">Ещё раз</button><button id="rGarage">Гараж</button><button id="rShare">Скопировать результат</button></div>
-</div></div>
-
-<div id="loading"><div><b id="pct">0%</b><br>загружаю мотор (9 МБ)</div></div>
+<div id="loading"><div><b id="pct">0%</b></div></div>
 
 <script id="cyc">
 // CycleEngine: plays the owner's recording re-sampled to the crank-angle domain (S samples per firing period).
@@ -348,14 +271,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 const $ = id => document.getElementById(id);
-
-// ---------------- save (per browser; the page works without it)
-const KEY = 'm50drag.v1';
-const LEAGUES = [['Двор', 17.2, 60], ['Улица', 16.5, 90], ['Клуб', 16.0, 130], ['Трек-день', 15.4, 180], ['Про', 14.8, 240], ['Легенда', 14.2, 320]];
-let save = { cr: 0, up: {}, best: 0, best100: 0, bestRt: 0, league: 0, runs: 0, cut: true, snd: true };
+const KEY = 'm50stand.v1';
+let save = { cut: true, snd: true };
 try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && typeof s === 'object') Object.assign(save, s); } catch (e) {}
 const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} };
-
+let car = new Car(carFrom({}));
 // ---------------- scene
 const stage = $('stage');
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -431,9 +351,8 @@ function applyVis() {
 applyVis();
 $('btnCut').onclick = () => { cutOn = !cutOn; save.cut = cutOn; persist(); applyVis(); };
 window.__view = (p, t) => { camera.position.set(...p); controls.target.set(...t); controls.update(); };
-window.__dbg = () => ({ cutHide: cutHide.length, cutMeshes: cutMeshes.length, spins: spins.length, chains: chains.map(c => c.ms.length), clips: gltf.animations.length, clipT0, clipT1, mode, phase, rpm: car.rpm, v: car.v, x: car.x, gear: car.gear, audio: !!node, sndReady });
+window.__dbg = () => ({ cutHide: cutHide.length, cutMeshes: cutMeshes.length, spins: spins.length, chains: chains.map(c => c.ms.length), clips: gltf.animations.length, rpm: car.rpm, pedal, thrEff: car.thrEff, cut: car.cut, lz: car.lz, audio: !!node, sndReady });// rpm: car.rpm, v: car.v, x: car.x, gear: car.gear, audio: !!node, sndReady });
 $('loading').hidden = true; ready = true;
-
 // ---------------- sound: the owner's recording in the crank-angle domain, played by CycleEngine in an AudioWorklet
 const cycSrc = $('cyc').textContent;
 const soundFiles = Promise.all([fetch('m50_cycles.wav').then(r => r.arrayBuffer()), fetch('m50_cycles.json').then(r => r.json())]);
@@ -462,90 +381,17 @@ function sendAudio() { if (node) node.port.postMessage({ rpm: A.rpm, thr: A.thr,
 $('btnSnd').setAttribute('aria-pressed', !!save.snd);
 $('btnSnd').onclick = () => { save.snd = !save.snd; persist(); $('btnSnd').setAttribute('aria-pressed', save.snd); ensureAudio(); };
 
-// ---------------- game state
-let car = new Car(carFrom(save.up)); let mode = 'menu', phase = 'idle', tPhase = 0, tGreen = 0, rt = 0, foul = false, ghostT = 0, lastRes = null;
-let pedal = false, visTh = 0;
-const sheets = ['sheetMenu', 'sheetGarage', 'sheetRes'];
-function show(id) { for (const s of sheets) $(s).hidden = s !== id; $('dock').hidden = !!id && id !== 'sheetRes' ? true : false; if (id === 'sheetMenu') drawMenu(); if (id === 'sheetGarage') drawGarage(); }
-function drawMenu() {
-  $('leagueBar').innerHTML = LEAGUES.map((l, i) => `<i class="${i < save.league ? 'on' : i === save.league ? 'cur' : ''}" title="${l[0]} ${l[1]}"></i>`).join('');
-  const L = LEAGUES[Math.min(save.league, LEAGUES.length - 1)];
-  $('menuInfo').innerHTML = (save.league >= LEAGUES.length ? 'Все лиги пройдены · ' : `Лига «${L[0]}»: проехать за <b style="color:var(--fg)">${L[1].toFixed(1)} с</b> · приз ${L[2]} кр · `) +
-    `кредиты <b style="color:var(--gold)">${save.cr}</b>` + (save.best ? ` · рекорд ${save.best.toFixed(3)} с` : '') + (save.best100 ? ` · 0–100 ${save.best100.toFixed(2)} с` : '');
-}
-function drawGarage() {
-  $('gCr').textContent = save.cr + ' кр';
-  $('gList').innerHTML = Object.entries(UPG).map(([k, u]) => {
-    const lv = save.up[k] || 0, nx = u.lv[lv + 1];
-    return `<div class="up"><div><b>${u.name}</b> <span>${u.lv[lv][0]}</span></div>` +
-      (nx ? `<button class="small" data-up="${k}" ${save.cr < nx[1] ? 'disabled' : ''}>${nx[0]} · ${nx[1]} кр</button>` : '<span class="gold">максимум</span>') +
-      `<div class="lv">${u.lv.map((_, i) => `<i class="${i <= lv ? 'on' : ''}"></i>`).join('')}</div></div>`;
-  }).join('');
-  for (const b of $('gList').querySelectorAll('button[data-up]')) b.onclick = () => {
-    const k = b.dataset.up, lv = save.up[k] || 0, nx = UPG[k].lv[lv + 1]; if (!nx || save.cr < nx[1]) return;
-    save.cr -= nx[1]; save.up[k] = lv + 1; persist(); car = new Car(carFrom(save.up)); drawGarage();
-  };
-}
-function setTree(a, cls) { const L = $('tree').querySelectorAll('i'); L.forEach((e, i) => { e.className = i < a ? (cls || 'a') : ''; }); }
-function startRace() {
-  ensureAudio(); car = new Car(carFrom(save.up)); mode = 'race'; phase = 'stage'; tPhase = 0; foul = false; rt = 0; ghostT = 0; A.run = true;
-  setTree(0); $('msg').textContent = 'газ в пол не обязательно: подбери обороты старта'; show(null);
-}
-function startBench() { ensureAudio(); car = new Car(carFrom(save.up)); mode = 'bench'; phase = 'idle'; A.run = true; setTree(0); $('msg').textContent = 'стенд: нейтраль, газуй сколько хочешь'; show(null); }
-function toMenu() { mode = 'menu'; phase = 'idle'; A.run = false; pedal = false; show('sheetMenu'); }
-function doShift() {
-  if (mode !== 'race') return;
-  if (phase === 'stage' || phase === 'tree') { foul = true; phase = 'run'; setTree(4, 'r'); $('msg').textContent = 'фальстарт — заезд не в зачёт'; car.shiftUp(); return; }
-  if (phase === 'go') { rt = tPhase; phase = 'run'; $('msg').textContent = 'реакция ' + rt.toFixed(3) + ' с'; car.shiftUp(); return; }
-  if (phase === 'run') car.shiftUp();
-}
-function finish() {
-  phase = 'done'; const L = LEAGUES[Math.min(save.league, LEAGUES.length - 1)], et = car.tEnd;
-  const perfect = car.shifts.filter(r => r >= 6100 && r < 6585).length; let pay = 0; const lines = [];
-  let title = 'Финиш', line = '';
-  if (foul) { title = 'Фальстарт'; line = 'Стартовал до зелёного — время не засчитано.'; }
-  else {
-    pay += 40; lines.push('заезд +40');
-    if (perfect) { pay += perfect * 15; lines.push(`точные переключения ×${perfect} +${perfect * 15}`); }
-    if (rt < 0.2) { pay += 20; lines.push('реакция быстрее 0.2 с +20'); }
-    if (!save.best || et < save.best) { if (save.best) { pay += 30; lines.push('личный рекорд +30'); } save.best = et; }
-    if (car.t100 && (!save.best100 || car.t100 < save.best100)) save.best100 = car.t100;
-    if (!save.bestRt || rt < save.bestRt) save.bestRt = rt;
-    if (save.league < LEAGUES.length && et <= L[1]) { pay += L[2]; lines.push(`лига «${L[0]}» пройдена +${L[2]}`); save.league++; title = 'Лига пройдена'; line = save.league < LEAGUES.length ? `Дальше — «${LEAGUES[save.league][0]}», нужно ${LEAGUES[save.league][1].toFixed(1)} с.` : 'Это была последняя лига.'; }
-    else if (save.league < LEAGUES.length) line = `До лиги «${L[0]}» не хватило ${(et - L[1]).toFixed(2)} с.`;
-    save.cr += pay; save.runs++;
-  }
-  persist();
-  $('rTitle').textContent = title; $('rEt').innerHTML = et.toFixed(3) + ' <small>с · ' + (car.vEnd * 3.6).toFixed(0) + ' км/ч</small>'; $('rLine').textContent = line;
-  const st = [['реакция', foul ? '—' : rt.toFixed(3) + ' с'], ['60 футов', car.t60.toFixed(2) + ' с'], ['0–100 км/ч', car.t100 ? car.t100.toFixed(2) + ' с' : '—'], ['старт', Math.round(car.launchRpm) + ' об/мин'], ['переключения', car.shifts.join(' · ') || '—']];
-  $('rStats').innerHTML = st.map(([a, b]) => `<div class="stat"><b>${b}</b><span>${a}</span></div>`).join('');
-  $('rPay').innerHTML = foul ? '' : lines.join(' · ') + ` · итого <b class="gold">+${pay} кр</b> (всего ${save.cr})`;
-  lastRes = `M50 ДРАГ: 402 м за ${et.toFixed(3)} с, ${(car.vEnd * 3.6).toFixed(0)} км/ч на финише, реакция ${rt.toFixed(3)} с, 0–100 за ${car.t100 ? car.t100.toFixed(2) : '—'} с. E34 525i M50B25.`;
-  setTimeout(() => { if (phase === 'done') show('sheetRes'); }, 900);
-}
-$('mRace').onclick = startRace; $('gRace').onclick = startRace; $('rAgain').onclick = startRace;
-$('mGarage').onclick = () => show('sheetGarage'); $('rGarage').onclick = () => { mode = 'menu'; A.run = false; show('sheetGarage'); };
-$('gBack').onclick = toMenu; $('mBench').onclick = startBench; $('btnMenu').onclick = toMenu;
-$('rShare').onclick = async () => { try { await navigator.clipboard.writeText(lastRes); $('rShare').textContent = 'Скопировано'; } catch (e) { $('rShare').textContent = lastRes; } setTimeout(() => { $('rShare').textContent = 'Скопировать результат'; }, 2500); };
-
-// ---------------- input
-const gasB = $('gas'), shB = $('shift');
-const press = v => { pedal = v; gasB.classList.toggle('down', v); };
+// ---------------- input: hold the button / Space / W / up arrow; the first touch also starts the sound (browser rule)
+const gasB = $('gas'); let pedal = false;
+const press = v => { pedal = v; gasB.classList.toggle('down', v); if (v && save.snd) ensureAudio(); };
 gasB.addEventListener('pointerdown', e => { e.preventDefault(); try { gasB.setPointerCapture(e.pointerId); } catch (_) {} press(true); });
 for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) gasB.addEventListener(ev, () => press(false));
-shB.addEventListener('pointerdown', e => { e.preventDefault(); shB.classList.add('down'); doShift(); });
-for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) shB.addEventListener(ev, () => shB.classList.remove('down'));
-const GAS = new Set([' ', 'w', 'ц', 'arrowup']), SHF = new Set(['shift', 'arrowright', 'd', 'в', 'enter']);
-addEventListener('keydown', e => {
-  const k = e.key.toLowerCase(); if (mode === 'menu') return;
-  if (GAS.has(k)) { e.preventDefault(); if (!e.repeat) press(true); }
-  else if (SHF.has(k)) { e.preventDefault(); if (!e.repeat) { shB.classList.add('down'); doShift(); } }
-  else if (k === 'escape') toMenu(); else if (k === 'r' || k === 'к') startRace();
-});
-addEventListener('keyup', e => { const k = e.key.toLowerCase(); if (GAS.has(k)) press(false); if (SHF.has(k)) shB.classList.remove('down'); });
+addEventListener('pointerdown', () => { if (save.snd) ensureAudio(); }, { once: true });
+const GAS = new Set([' ', 'w', 'ц', 'arrowup']);
+addEventListener('keydown', e => { const k = e.key.toLowerCase(); if (GAS.has(k)) { e.preventDefault(); if (!e.repeat) press(true); } else if (k === 'c' || k === 'с') $('btnCut').click(); });
+addEventListener('keyup', e => { if (GAS.has(e.key.toLowerCase())) press(false); });
 addEventListener('blur', () => press(false));
 
-// ---------------- instruments
 const tc = $('tach'), g = tc.getContext('2d');
 function drawTach(rpm, lamp) {
   const W = tc.width, c = W / 2, R = W * 0.44; g.clearRect(0, 0, W, W);
@@ -564,20 +410,6 @@ function drawTach(rpm, lamp) {
   g.moveTo(c - Math.cos(a) * 24, c - Math.sin(a) * 24); g.lineTo(c + Math.cos(a) * (R - 16), c + Math.sin(a) * (R - 16)); g.stroke(); g.lineCap = 'butt';
   g.fillStyle = '#1b1e24'; g.beginPath(); g.arc(c, c, 15, 0, 7); g.fill();
 }
-const sc = $('strip'), sg = sc.getContext('2d');
-function drawStrip() {
-  const W = sc.width, H = sc.height, x0 = 18, x1 = W - 18, y = H * 0.56, X = d => x0 + (x1 - x0) * Math.min(1, d / QM);
-  sg.clearRect(0, 0, W, H); sg.strokeStyle = '#2a2e35'; sg.lineWidth = 16; sg.lineCap = 'round'; sg.beginPath(); sg.moveTo(x0, y); sg.lineTo(x1, y); sg.stroke();
-  sg.font = '500 17px "JetBrains Mono", monospace'; sg.textAlign = 'center'; sg.fillStyle = '#8d9099'; sg.lineWidth = 2; sg.strokeStyle = '#5a5f6a'; sg.lineCap = 'butt';
-  for (const [d, t] of [[18.288, '60 фт'], [201.168, '201 м'], [QM, '402']]) { const x = X(d); sg.beginPath(); sg.moveTo(x, y - 14); sg.lineTo(x, y + 14); sg.stroke(); sg.fillText(t, Math.min(x, W - 26), 15); }
-  if (mode === 'race' && save.league < LEAGUES.length) {
-    const T = LEAGUES[save.league][1], gx = QM * Math.pow(Math.min(1, ghostT / T), 1.9);               // league pace marker
-    sg.fillStyle = '#f2c14e'; sg.beginPath(); sg.arc(X(gx), y + 20, 6, 0, 7); sg.fill();
-  }
-  sg.fillStyle = car.slip ? '#e2382b' : '#ff8a2a'; sg.beginPath(); sg.arc(X(car.x), y, 10, 0, 7); sg.fill();
-}
-
-// ---------------- frame
 const qx = new THREE.Quaternion(), XA = new THREE.Vector3(1, 0, 0); const clock = new THREE.Clock();
 function applyAngle(t, burning) {
   mixer.setTime(clipT0 + (t / 720) * (clipT1 - clipT0));
@@ -591,38 +423,20 @@ function applyAngle(t, burning) {
     for (const o of flames[n - 1]) o.visible = burning; lights[n - 1].intensity = burning ? f * 2.5 : 0;
   }
 }
+
 let angT = 0;
 renderer.setAnimationLoop(() => {
-  const dt = Math.min(clock.getDelta(), 0.1) * (window.__warp || 1); if (!ready) return;
-  const running = mode !== 'menu'; let thr = 0;
-  if (running) {
-    thr = pedal && phase !== 'done' ? 1 : 0;
-    if (mode === 'race') {
-      tPhase += dt;
-      if (phase === 'stage' && tPhase > 1.6) { phase = 'tree'; tPhase = 0; }
-      else if (phase === 'tree') { const n = Math.min(3, Math.floor(tPhase / 0.5) + 1); setTree(n); if (tPhase >= 1.5) { phase = 'go'; tPhase = 0; setTree(4, 'g'); $('msg').textContent = 'ЗЕЛЁНЫЙ — передача!'; } }
-      if (phase === 'run' || phase === 'done') ghostT += dt;
-    }
-    const n = Math.max(1, Math.ceil(dt * 600)), h = dt / n;
-    for (let i = 0; i < n; i++) { car.step(h, thr); if (mode === 'race' && phase === 'run' && car.tEnd) { finish(); } }
-    if (phase === 'done' && car.gear !== 0) { car.gear = 0; car.clutch = 'open'; car.shiftLeft = 0; }
-    if (phase === 'done') car.v = Math.max(0, car.v - 6 * dt);
-  }
-  A.rpm = car.rpm; A.thr = running ? car.thrEff : 0; A.lim = running && car.lz && thr > 0; if (!running) A.run = false; sendAudio();
-  const rpm = running ? car.rpm : 0; angT = (angT + rpm * 6 * dt) % 720; visTh = angT;
-  applyAngle(visTh, running && !(car.cut && thr > 0) && cutOn);
+  const dt = Math.min(clock.getDelta(), 0.1); if (!ready) return;
+  const thr = pedal ? 1 : 0, n = Math.max(1, Math.ceil(dt * 600));
+  for (let i = 0; i < n; i++) car.step(dt / n, thr);
+  A.rpm = car.rpm; A.thr = car.thrEff; A.lim = car.lz && thr > 0; A.run = true; sendAudio();
+  angT = (angT + car.rpm * 6 * dt) % 720; applyAngle(angT, !(car.cut && thr > 0) && cutOn);
   if (mount && mountQ0) {
-    const lean = running ? 0.004 + 0.013 * car.thrEff * Math.min(1, rpm / 3000) : 0, vib = running ? Math.sin(THREE.MathUtils.degToRad(visTh) * 3) * 0.0012 * (rpm < 1200 ? 1 : 0.4) : 0;
+    const lean = 0.004 + 0.013 * car.thrEff * Math.min(1, car.rpm / 3000), vib = Math.sin(THREE.MathUtils.degToRad(angT) * 3) * 0.0012 * (car.rpm < 1200 ? 1 : 0.4);
     qx.setFromAxisAngle(XA, lean + vib); mount.quaternion.copy(mountQ0).multiply(qx);
   }
-  if (running) {
-    drawTach(car.rpm, car.rpm > 6100 && car.gear > 0 && car.gear < 5); drawStrip();
-    const ge = $('gear'); ge.textContent = car.gear === 0 ? 'N' : car.gear; ge.classList.toggle('shift', car.rpm > 6100 && car.gear > 0 && car.gear < 5 && !car.cut); ge.classList.toggle('cutting', car.cut);
-    $('spd').textContent = Math.round(car.v * 3.6); $('tim').textContent = (car.tEnd || car.t).toFixed(2); $('dst').textContent = Math.min(402, Math.floor(car.x));
-  }
-  controls.update(); renderer.render(scene, camera);
+  drawTach(car.rpm, false); controls.update(); renderer.render(scene, camera);
 });
-applyAngle(0, false); drawTach(737, false); show('sheetMenu');
 </script>
 
 </body>
